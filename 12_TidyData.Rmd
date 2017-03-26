@@ -1,0 +1,236 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+12.2.1 Exercises -- tidy data
+
+1. Using prose, describe how the variables and observations are organised in each of the sample tables.
+
+```{r}
+# Each variable has its own column.
+# Each observation has its own row.
+# Each value has its own cell.
+# Tot. number of elements: 6*4 = 24
+table1
+```
+
+```{r}
+# Two variables "cases" and "population" occupy the same column.
+# We have 2 rows for the same observation of Country/Year.
+# Total number of elements: 12*4 = 48
+table2
+```
+
+```{r}
+# There are 2 values occupying the same cell in the 3rd column.
+# Total number of elements: 3*6 = 18
+table3
+```
+
+```{r}
+# The variables country and year appears in 2 tables.
+# Total number of elements: 3*6 = 18
+cbind(table4a,table4b)
+```
+
+2. Compute the rate for table2, and table4a + table4b. You will need to perform four operations:
+
+Extract the number of TB cases per country per year.
+Extract the matching population per country per year.
+Divide cases by population, and multiply by 10000.
+Store back in the appropriate place.
+Which representation is easiest to work with? Which is hardest? Why?
+
+```{r}
+#table2
+cases <- table2 %>% 
+  filter(type == "cases") %>% 
+  select(country,year,n_cases = count)
+
+pop <- table2 %>%
+  filter(type == "population") %>%
+  select(country,year,n_pop = count)
+
+(merged_table2 <- merge(cases,pop, all = TRUE))
+
+(merged_table2 <- merged_table2 %>%
+  mutate(ratio = n_cases / n_pop))
+```
+
+```{r}
+#cbind(table4a,table4b)
+gathered_table4a <- table4a %>%
+  gather(year, n_cases, `1999`:`2000`)
+
+gathered_table4b <- table4b %>%
+  gather(year, n_pop, `1999`:`2000`)
+
+(merged_table4 <- merge(gathered_table4a,gathered_table4b, all = TRUE))
+
+(merged_table4 <- merged_table4 %>%
+  mutate(ratio = n_cases / n_pop))
+```
+
+3. Recreate the plot showing change in cases over time using table2 instead of table1. What do you need to do first?
+
+```{r}
+# Visualise changes over time, TABLE1
+library(ggplot2)
+ggplot(merged_table2, aes(year, n_cases)) + 
+  geom_line(aes(group = country), colour = "grey50") + 
+  geom_point(aes(colour = country))
+```
+
+# 12.3.3 Exercises -- spreading and gathering
+
+1. Why are gather() and spread() not perfectly symmetrical?
+
+In gather, we need to specify the columns that are to be transformed into observations and the new key/value columns that will contain those values.
+In spread, we only need to specify the key/value columns that we want to spread out into columns and R will infer by itself what are the new columns it needs to create.
+
+
+2. Carefully consider the following example:
+
+```{r}
+stocks <- tibble(
+  year   = c(2015, 2015, 2016, 2016),
+  half  = c(   1,    2,     1,    2),
+  return = c(1.88, 0.59, 0.92, 0.17)
+)
+stocks %>% 
+  spread(year, return) %>% 
+  gather("year", "return", `2015`:`2016`)
+```
+
+(Hint: look at the variable types and think about column names.)
+
+Both spread() and gather() have a convert argument. What does it do?
+
+Answer: basically we are doing and undoing a transformation. Firstly we spread the years 2015 and 2016 into new columns. Then we pick columns 2015 and 2016 and their "return" and we gather them into "year" and "return" columns, which is exactly how it was organized before.
+
+
+3. Why does this code fail?
+
+table4a %>% 
+  gather(1999, 2000, key = "year", value = "cases")
+#> Error in combine_vars(vars, ind_list): Position must be between 0 and n
+
+Answer: Because the year value must be enclosed with ` ` as in `1999` and `2000`.
+
+
+4. Why does spreading this tibble fail? How could you add a new column to fix the problem?
+
+```{r}
+people <- tribble(
+  ~name,             ~key,    ~value,
+  #-----------------|--------|------
+  "Phillip Woods",   "age",       45,
+  "Phillip Woods",   "height",   186,
+  "Phillip Woods",   "age",       50,
+  "Jessica Cordero", "age",       37,
+  "Jessica Cordero", "height",   156
+)
+people %>% spread(key = "key",value = "value")
+```
+
+Answer: it fails because Philip Woods has two different values of age. This is maybe for 2 different people. Thus, if we add some ID that differenciates the 2 Philips, it should work.
+
+QUESTION: IS THIS A CORRECT APPROACH??
+
+```{r}
+augm_people <- mutate(people, id = c(1,1,2,3,3))
+augm_people %>% spread(key = "key",value = "value")
+```
+
+5. Tidy the simple tibble below. Do you need to spread or gather it? What are the variables?
+
+Answer: it does not make sense to consider a male being pregnant (not yet!) to the variables should be instead male, pregnant female, un-pregnant female.
+
+QUESTION: IS THIS THE RIGHT ANSWER?
+
+preg <- tribble(
+  ~pregnant, ~male, ~female,
+  "yes",     NA,    10,
+  "no",      20,    12
+)
+
+
+# 12.4.3 Exercises -- separating and uniting
+
+1. What do the extra and fill arguments do in separate()? Experiment with the various options for the following two toy datasets.
+
+**sep = "[^[:alnum:]]+"**: we have already seen this
+**remove = TRUE**: If TRUE, remove input column from output data frame.
+**convert = FALSE**: If TRUE, will try to convert the new columns into more adequate data types. Useful for integers, numerics or logicals.
+**extra = "warn"**:
+If sep is a character vector, this controls what happens when there are too many pieces. There are three valid options:
+
+* "warn" (the default): emit a warning and drop extra values.
+* "drop": drop any extra values without a warning.
+* "merge": only splits at most length(into) times.
+
+**fill = "warn"**:
+If sep is a character vector, this controls what happens when there are not enough pieces. There are three valid options:
+
+* "warn" (the default): emit a warning and fill from the right
+* "right": fill with missing values on the right
+* "left": fill with missing values on the left
+
+
+```{r}
+(tb <- tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")))
+
+(tb %>% separate(x, c("one", "two", "three"))) # The extra g is dropped
+
+(tb %>% separate(x, c("one", "two", "three"), sep = "/")) 
+# This does do any spreading because there are no backslashes.
+
+(tb %>% separate(x, c("one", "two", "three"), remove = FALSE)) 
+# This keeps the old column x
+
+(tb %>% separate(x, c("one", "two", "three"), convert = TRUE)) 
+# Does not make any difference, because the values are chars, anyway.
+
+# I was expecting a waring with one of these 2, because row 2 has 4 values instead of 3...
+(tb %>% separate(x, c("one", "two", "three"), sep = ",", extra = "warn")) 
+
+(tb %>% separate(x, c("one", "two", "three"), sep = ",", fill = "warn"))
+```
+
+QUESTION: NOT SURE WHY THERE IS NO WARNING GIVEN THAT ROW 2 HAS 1 VALUE LESS.
+
+```{r}
+(tb2 <- tibble(x = c("a,b,c", "d,e", "f,g,i")) )
+
+(tb2 %>% separate(x, c("one", "two", "three")))
+
+(tb2 %>% separate(x, c("one", "two", "three"), fill = "warn"))
+```
+
+2. Both unite() and separate() have a remove argument. What does it do? Why would you set it to FALSE?
+
+Answer: the remove argument is used to drop the columns that contained the grouped observations. If remove = TRUE, the cluttered column will not appear in the newly created object.
+We could set remove = FALSE to keep track of the original structure of the data and allow corrections in case the separate operation was correctly performed.
+
+
+3. Compare and contrast separate() and extract(). Why are there three variations of separation (by position, by separator, and with groups), but only one unite?
+
+Because to separate, we must comply with the actual state of data (which may organize data with position, separator or grouping). The goal of the function unite is to make data tidy, thus it makes sense that it does not allow complete freedom to organize the data, but instead, well proven ways of doing it.
+
+
+# 12.5.1 Exercises -- missing values
+
+1. Compare and contrast the fill arguments to spread() and complete().
+
+In spread(), we can only indicate 1 value to be used to fill missing values.
+In complete(), we can use a list of values.
+
+*Fill* completes empty values in a column with the last non-empty value ecountered. Eg.: c(Andre, NA, NA, Pedro) becomes c(Andre, Andre, Andre, Pedro). Fill works column wise. It does not use relations btwn columns.
+
+*Complete* calculates all the possible combinations of 2 or more columns and fills in with those that are not represented. It works somehow like fill but form combinations of columns and fills in the missing combinations rather than the previous combination found.
+
+
+2. What does the direction argument to fill() do?
+
+The direction argument can be "up" or "down". It indicates which value we use to fill the missings in a column, either the 1st found going up in the column or first found going down.
