@@ -1,0 +1,137 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+# 13.3.1 Exercises -- keys
+
+1. Add a surrogate key to flights.
+
+```{r}
+library(tidyverse)
+library(nycflights13)
+```
+
+```{r}
+(flights1 <- mutate(flights, key = row_number()))
+```
+
+
+2. Identify the keys in the following datasets
+
+Lahman::Batting,
+```{r}
+if("Lahman" %in% rownames(installed.packages()) == FALSE) {install.packages("Lahman")}
+Lahman::Batting
+
+Lahman::Batting %>% 
+  count(playerID, yearID, stint) %>% 
+  filter(n > 1)
+```
+
+
+babynames::babynames
+```{r}
+if("babynames" %in% rownames(installed.packages()) == FALSE) {install.packages("babynames")}
+
+babynames::babynames %>%
+  count(name,year) %>%
+  filter(n > 1)
+```
+
+
+nasaweather::atmos
+```{r}
+if("nasaweather" %in% rownames(installed.packages()) == FALSE) {install.packages("nasaweather")}
+
+nasaweather::atmos
+
+nasaweather::atmos %>%
+  count(lat,long,year,month) %>%
+  filter(n > 1)
+```
+
+
+fueleconomy::vehicles
+```{r}
+if("fueleconomy" %in% rownames(installed.packages()) == FALSE) {install.packages("fueleconomy")}
+
+fueleconomy::vehicles 
+fueleconomy::vehicles %>%
+  count(id) %>%
+  filter(n > 1)
+```
+
+ggplot2::diamonds
+(You might need to install some packages and read some documentation.)
+```{r}
+if("ggplot2" %in% rownames(installed.packages()) == FALSE) {install.packages("ggplot2")}
+
+ggplot2::diamonds
+ggplot2::diamonds %>%
+  count(carat,cut,color,clarity,depth,table,price,x,y,z) %>%
+  filter(n > 1)
+
+# There are no keys. Even using all the columns, there are 2 of each.
+```
+
+
+3. Draw a diagram illustrating the connections between the Batting, Master, and Salaries tables in the Lahman package. Draw another diagram that shows the relationship between Master, Managers, AwardsManagers.
+
+```{r}
+if("Lahman" %in% rownames(installed.packages()) == FALSE) {install.packages("Lahman")}
+
+Lahman::Batting 
+# Key: playerID, yearID, stint
+
+Lahman::Master
+# Cannot see it here but connects to Batting through playerID>
+Lahman::Salaries 
+# Connects to Batting through PlayerID, yearID, lgID, teamID.
+```
+
+4. How would you characterise the relationship between the Batting, Pitching, and Fielding tables?
+
+```{r}
+Lahman::Pitching 
+# One player can do many pitching. Each pitching is done by 1 player.
+Lahman::Fielding
+# One player can do many fielding. Each fielding is done by 1 player.
+```
+
+
+# 13.4.6 Exercises -- Mutating joins
+
+1. Compute the average delay by destination, then join on the airports data frame so you can show the spatial distribution of delays. Here’s an easy way to draw a map of the United States:
+(Don’t worry if you don’t understand what semi_join() does — you’ll learn about it next.)
+```{r}
+airports %>%
+  semi_join(flights, c("faa" = "dest")) %>%
+  ggplot(aes(lon, lat)) +
+    borders("state") +
+    geom_point() +
+    coord_quickmap()
+```
+
+You might want to use the size or colour of the points to display the average delay for each airport.
+
+```{r}
+if("maps" %in% rownames(installed.packages()) == FALSE) {install.packages("maps")}
+
+# Compute the average delay by destination
+(flights %>%
+  filter(arr_delay != "NA", dep_delay !="NA") %>%
+  group_by(dest) %>%
+  summarise(avg_delay = mean(c(arr_delay,dep_delay))) %>%
+  left_join(airports, c("dest" = "faa")))
+
+
+```
+
+Add the location of the origin and destination (i.e. the lat and lon) to flights.
+
+Is there a relationship between the age of a plane and its delays?
+
+What weather conditions make it more likely to see a delay?
+
+What happened on June 13 2013? Display the spatial pattern of delays, and then use Google to cross-reference with the weather.
