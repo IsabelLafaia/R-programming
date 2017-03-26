@@ -1,0 +1,136 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+# 11.2.2 Exercises -- getting started
+
+1. What function would you use to read a file where fields were separated with “|”?
+Answer: read_delim.
+
+2. Apart from file, skip, and comment, what other arguments do read_csv() and read_tsv() have in common?
+Answer: All arguments are shared by the 2 functions.
+
+> args(read_csv)
+function (file, col_names = TRUE, col_types = NULL, locale = default_locale(), 
+    na = c("", "NA"), quoted_na = TRUE, comment = "", trim_ws = TRUE, 
+    skip = 0, n_max = Inf, guess_max = min(1000, n_max), progress = interactive()) 
+NULL
+> args(read_tsv)
+function (file, col_names = TRUE, col_types = NULL, locale = default_locale(), 
+    na = c("", "NA"), quoted_na = TRUE, comment = "", trim_ws = TRUE, 
+    skip = 0, n_max = Inf, guess_max = min(1000, n_max), progress = interactive()) 
+NULL
+
+3. What are the most important arguments to read_fwf()?
+
+> args(read_fwf)
+function (file, col_positions, col_types = NULL, locale = default_locale(), 
+    na = c("", "NA"), comment = "", skip = 0, n_max = Inf, guess_max = min(n_max, 
+        1000), progress = interactive()) 
+NULL
+
+4. Sometimes strings in a CSV file contain commas. To prevent them from causing problems they need to be surrounded by a quoting character, like " or '. By convention, read_csv() assumes that the quoting character will be ", and if you want to change it you’ll need to use read_delim() instead. What arguments do you need to specify to read the following text into a data frame?
+
+"x,y\n1,'a,b'"
+
+```{r}
+read_delim("x,y\n1,'a,b'", delim = ",", quote = "\'")
+```
+
+5. Identify what is wrong with each of the following inline CSV files. What happens when you run the code?
+
+read_csv("a,b\n1,2,3\n4,5,6") 
+--- the first line has only 2 elements, while the remaining have 2
+
+read_csv("a,b,c\n1,2\n1,2,3,4")
+--- the 2nd line has only 2 elements, while rows 1 and 3 have 3
+
+read_csv("a,b\n\"1")
+--- \" is not recognized as an element and thus this only reads 1
+
+read_csv("a,b\n1,2\na,b")
+--- where are trying to put ints and chars into the same columns. Everything will be coerced to chr, which may not be the desired result.
+read_csv("a;b\n1;3")
+
+
+# 11.3.5 Exercises -- parsing a vector
+
+1. What are the most important arguments to locale()?
+
+locale(decimal_mark = ",")
+locale(grouping_mark = ".")
+locale(encoding = "Latin1")
+locale("fr")
+
+2. What happens if you try and set decimal_mark and grouping_mark to the same character? What happens to the default value of grouping_mark when you set decimal_mark to “,”? What happens to the default value of decimal_mark when you set the grouping_mark to “.”?
+
+```{r}
+# If decimal_mark = ",", then "." is assumed as grouping mark (and vice-versa)
+parse_number("123.456,9", locale = locale(decimal_mark = ",")) 
+parse_number("123,456.9", locale = locale(decimal_mark = ",")) # neglects the .
+
+parse_number("123,456.9", locale = locale(decimal_mark = ".")) 
+parse_number("123.456,9", locale = locale(decimal_mark = ".")) # neglects the ,
+
+parse_number("123.456,9", locale = locale(decimal_mark = ",", grouping_mark = "."))
+parse_number("123.456,9", locale = locale(decimal_mark = ".", grouping_mark = ","))
+```
+
+
+3. I didn’t discuss the date_format and time_format options to locale(). What do they do? Construct an example that shows when they might be useful.
+
+```{r}
+parse_date("Day: 12, Month: 02, Year: 16", locale = locale(date_format = "Day: %d, Month: %m, Year: %y"))
+```
+
+4. If you live outside the US, create a new locale object that encapsulates the settings for the types of file you read most commonly.
+
+NOT SURE!!
+
+5. What’s the difference between read_csv() and read_csv2()?
+
+read_csv is for comma delimited files,
+read_csv2 is for semicolon delimited files, useful when comma is used for decimals.
+
+6. What are the most common encodings used in Europe? What are the most common encodings used in Asia? Do some googling to find out.
+
+Check wikipedia.
+
+7. Generate the correct format string to parse each of the following dates and times:
+
+```{r}
+d1 <- "January 1, 2010"
+parse_date(d1, locale = locale(date_format = "%B %d, %Y"))
+```
+
+```{r}
+d2 <- "2015-Mar-07"
+parse_date(d2, locale = locale(date_format = "%Y-%b-%d"))
+```
+
+```{r}
+d3 <- "06-Jun-2017"
+parse_date(d3, locale = locale(date_format = "%d-%b-%Y"))
+```
+
+```{r}
+d4 <- c("August 19 (2015)", "July 1 (2015)")
+parse_date(d4, locale = locale(date_format = "%B %d (%Y)"))
+```
+
+```{r}
+d5 <- "12/30/14" # Dec 30, 2014
+parse_date(d5, locale = locale(date_format = "%m/%d/%y"))
+```
+
+```{r}
+t1 <- "1705"
+parse_time(t1, locale = locale(time_format = "%H%M"))
+```
+
+```{r}
+t2 <- "11:15:10.12 PM"
+parse_time(t2, locale = locale(time_format = "%I:%m:%S %p"))
+```
+
