@@ -1,0 +1,97 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+# 10.5 Exercises with Tibbles
+
+1. How can you tell if an object is a tibble? (Hint: try printing mtcars, which is a regular data frame).
+
+A tibble shows the types of the columns.
+
+```{r}
+as_tibble(mtcars)
+```
+
+
+2. Compare and contrast the following operations on a data.frame and equivalent tibble. What is different? Why might the default data frame behaviours cause you frustration?
+
+With a dataframe:
+```{r}
+df <- data.frame(abc = 1, xyz = "a")
+df$x
+df[, "xyz"]
+df[, c("abc", "xyz")]
+```
+
+df$x -- This does partial matching of x to xyz (undesired feature). Moreover, when creating the df, the variable xyz was automatically turned into a factor.
+
+df[, "xyz"] -- this prints all rows of column named xyz. Somehow more complicated (is it?) of something that could be done with df[["xyz"]] with a tibble.
+
+df[, c("abc", "xyz")] -- same comment as before.
+
+If we were using a tibble, instead:
+```{r}
+tb <- tibble(abc = 1, xyz = "a")
+tb$x # Gives an error: Unknown column 'x'
+tb[, "xyz"] # xyz is simply a char variable and not a factor.
+tb[, c("abc", "xyz")] # Same comment as above.
+```
+
+3. If you have the name of a variable stored in an object, e.g. var <- "mpg", how can you extract the reference variable from a tibble?
+
+Either by var$mpg, var[["mpg"]] or var[[ncol(var)]].
+
+
+4. Practice referring to non-syntactic names in the following data frame by:
+
+Extracting the variable called 1.
+
+Plotting a scatterplot of 1 vs 2.
+
+Creating a new column called 3 which is 2 divided by 1.
+
+Renaming the columns to one, two and three.
+
+```{r}
+annoying <- tibble(
+  `1` = 1:10,
+  `2` = `1` * 2 + rnorm(length(`1`))
+)
+
+# Extracting the variable called 1
+annoying$`1` 
+
+# Plotting a scatterplot of 1 vs 2.
+plot(annoying$`1`, annoying$`2`, main="Scatterplot", 
+  	xlab="1", ylab="2", pch=19)
+
+# Creating a new column called 3 which is 2 divided by 1.
+annoying$`3` <- annoying$`2` / annoying$`1`
+annoying
+
+# Renaming the columns to one, two and three.
+names(annoying) <- c("one","two","three")
+annoying
+```
+
+
+5. What does tibble::enframe() do? When might you use it?
+
+NOT SURE!!
+From help: A helper function that converts named atomic vectors or lists to two-column data frames. For unnamed vectors, the natural sequence is used as name column.
+
+
+6. What option controls how many additional column names are printed at the footer of a tibble?
+
+NOT SURE!!
+
+options(tibble.width = Inf) will always print all columns, regardless of the width of the screen.
+
+```{r}
+tb_flights <- as_tibble(nycflights13::flights)
+options(tibble.max_extra_cols = 5)
+tb_flights <- as_tibble(nycflights13::flights)
+"print"(tb_flights, width = 3)
+```
+
